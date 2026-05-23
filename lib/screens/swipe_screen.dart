@@ -1,10 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 
+import '../controllers/swipe_session_controller.dart';
 import '../models/photo_model.dart';
+import '../models/swipe_action.dart';
 import '../utils/app_colors.dart';
+import '../utils/storage_formatters.dart';
 import '../widgets/action_button.dart';
 import '../widgets/photo_card.dart';
 
@@ -16,15 +17,12 @@ class SwipeScreen extends StatefulWidget {
 }
 
 class _SwipeScreenState extends State<SwipeScreen> {
-  final CardSwiperController _controller = CardSwiperController();
-  final List<PhotoModel> _photos = PhotoModel.mockPhotos;
-
-  int _visibleIndex = 0;
-  bool _isCompleted = false;
+  final CardSwiperController _cardController = CardSwiperController();
+  final SwipeSessionController _session = SwipeSessionController.instance;
 
   @override
   void dispose() {
-    unawaited(_controller.dispose());
+    _cardController.dispose();
     super.dispose();
   }
 
@@ -33,10 +31,12 @@ class _SwipeScreenState extends State<SwipeScreen> {
     int? currentIndex,
     CardSwiperDirection direction,
   ) async {
-    setState(() {
-      _visibleIndex = currentIndex ?? (_photos.length - 1);
-      _isCompleted = currentIndex == null;
-    });
+    // Future: add light haptic feedback here when device vibration support is enabled.
+    _session.swipe(
+      direction == CardSwiperDirection.left
+          ? SwipeActionType.delete
+          : SwipeActionType.keep,
+    );
     return true;
   }
 
@@ -45,149 +45,191 @@ class _SwipeScreenState extends State<SwipeScreen> {
     int currentIndex,
     CardSwiperDirection direction,
   ) {
-    setState(() {
-      _visibleIndex = currentIndex;
-      _isCompleted = false;
-    });
+    _session.undo();
     return true;
   }
 
   void _swipeLeft() {
-    if (_isCompleted) {
+    if (_session.isCompleted) {
       return;
     }
-    _controller.swipe(CardSwiperDirection.left);
+    _cardController.swipe(CardSwiperDirection.left);
   }
 
   void _swipeRight() {
-    if (_isCompleted) {
+    if (_session.isCompleted) {
       return;
     }
-    _controller.swipe(CardSwiperDirection.right);
+    _cardController.swipe(CardSwiperDirection.right);
   }
 
   void _undoSwipe() {
-    _controller.undo();
+    if (!_session.canUndo) {
+      return;
+    }
+    _cardController.undo();
+  }
+
+  void _restartSession() {
+    _session.restart();
   }
 
   @override
   Widget build(BuildContext context) {
-    final totalPhotos = _photos.length;
-    final progressValue = totalPhotos == 0
-        ? 0.0
-        : (_visibleIndex + 1).clamp(1, totalPhotos) / totalPhotos;
+    return AnimatedBuilder(
+      animation: _session,
+      builder: (context, _) {
+        final queue = _session.queue;
+        final totalPhotos = _session.totalPhotos;
+        final reviewedCount = _session.reviewedCount;
+        final progressValue = totalPhotos == 0
+            ? 0.0
+            : reviewedCount / totalPhotos;
+        final currentNumber = queue.isEmpty ? totalPhotos : reviewedCount + 1;
+        final storageSaved = formatStorageBytes(
+          _session.estimatedStorageSavedBytes,
+        );
 
-    return Stack(
-      children: [
-        const _SwipeBackground(),
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-            child: Column(
-              children: [
-                _SwipeHeader(
-                  currentNumber: totalPhotos == 0 ? 0 : _visibleIndex + 1,
-                  totalPhotos: totalPhotos,
-                  progressValue: progressValue,
-                ),
-                const SizedBox(height: 18),
-                Expanded(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 420),
-                      child: AspectRatio(
-                        aspectRatio: 0.78,
-                        child: _isCompleted
-                            ? _CompletedState(onReset: _undoSwipe)
-                            : CardSwiper(
-                                controller: _controller,
-                                cardsCount: _photos.length,
-                                numberOfCardsDisplayed: 3,
-                                isLoop: false,
-                                padding: EdgeInsets.zero,
-                                duration: const Duration(milliseconds: 260),
-                                threshold: 35,
-                                maxAngle: 24,
-                                scale: 0.92,
-                                backCardOffset: const Offset(0, 18),
-                                allowedSwipeDirection:
-                                    const AllowedSwipeDirection.only(
-                                      left: true,
-                                      right: true,
-                                    ),
-                                onSwipe: _handleSwipe,
-                                onUndo: _handleUndo,
-                                onEnd: () {
-                                  if (mounted) {
-                                    setState(() {
-                                      _isCompleted = true;
-                                    });
-                                  }
-                                },
-                                cardBuilder:
-                                    (
-                                      context,
-                                      index,
-                                      horizontalOffsetPercentage,
-                                      verticalOffsetPercentage,
-                                    ) {
-                                      final swipeDirection =
-                                          horizontalOffsetPercentage < 0
-                                          ? CardSwiperDirection.left
-                                          : horizontalOffsetPercentage > 0
-                                          ? CardSwiperDirection.right
-                                          : null;
-
-                                      return PhotoCard(
-                                        imageUrl: _photos[index].imageUrl,
-                                        filename: _photos[index].filename,
-                                        fileSize: _photos[index].fileSize,
-                                        date: _photos[index].date,
-                                        isTopCard: index == _visibleIndex,
-                                        swipeDirection: swipeDirection,
-                                      );
-                                    },
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        return Stack(
+          children: [
+            const _SwipeBackground(),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
                   children: [
-                    ActionButton(
-                      icon: Icons.delete_outline_rounded,
-                      label: 'Delete',
-                      onPressed: _isCompleted ? null : _swipeLeft,
-                      backgroundColor: AppColors.danger.withValues(alpha: 0.18),
-                      iconColor: AppColors.danger,
+                    _SwipeHeader(
+                      currentNumber: currentNumber,
+                      totalPhotos: totalPhotos,
+                      progressValue: progressValue,
+                      reviewedCount: reviewedCount,
+                      keptCount: _session.keptCount,
+                      deletedCount: _session.deletedCount,
+                      storageSaved: storageSaved,
                     ),
-                    ActionButton(
-                      icon: Icons.undo_rounded,
-                      label: 'Undo',
-                      onPressed: _visibleIndex == 0 && !_isCompleted
-                          ? null
-                          : _undoSwipe,
-                      backgroundColor: Colors.white.withValues(alpha: 0.08),
-                      iconColor: AppColors.textPrimary,
-                    ),
-                    ActionButton(
-                      icon: Icons.favorite_outline_rounded,
-                      label: 'Keep',
-                      onPressed: _isCompleted ? null : _swipeRight,
-                      backgroundColor: AppColors.success.withValues(
-                        alpha: 0.18,
+                    const SizedBox(height: 18),
+                    Expanded(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: AspectRatio(
+                            aspectRatio: 0.78,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 260),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              child: queue.isEmpty
+                                  ? _CompletedState(
+                                      key: const ValueKey('completed-state'),
+                                      reviewedCount: reviewedCount,
+                                      keptCount: _session.keptCount,
+                                      deletedCount: _session.deletedCount,
+                                      storageSaved: storageSaved,
+                                      onRestart: _restartSession,
+                                      canUndo: _session.canUndo,
+                                      onUndo: _undoSwipe,
+                                    )
+                                  : CardSwiper(
+                                      key: ValueKey(
+                                        'swipe-${_session.generation}',
+                                      ),
+                                      controller: _cardController,
+                                      cardsCount: queue.length,
+                                      numberOfCardsDisplayed: queue.length >= 3
+                                          ? 3
+                                          : queue.length,
+                                      isLoop: false,
+                                      padding: EdgeInsets.zero,
+                                      duration: const Duration(
+                                        milliseconds: 260,
+                                      ),
+                                      threshold: 35,
+                                      maxAngle: 24,
+                                      scale: 0.92,
+                                      backCardOffset: const Offset(0, 18),
+                                      allowedSwipeDirection:
+                                          const AllowedSwipeDirection.only(
+                                            left: true,
+                                            right: true,
+                                          ),
+                                      onSwipe: _handleSwipe,
+                                      onUndo: _handleUndo,
+                                      onEnd: () {},
+                                      cardBuilder:
+                                          (
+                                            context,
+                                            index,
+                                            horizontalOffsetPercentage,
+                                            verticalOffsetPercentage,
+                                          ) {
+                                            final swipeDirection =
+                                                horizontalOffsetPercentage < 0
+                                                ? CardSwiperDirection.left
+                                                : horizontalOffsetPercentage > 0
+                                                ? CardSwiperDirection.right
+                                                : null;
+                                            final swipeProgress =
+                                                (horizontalOffsetPercentage
+                                                            .abs() /
+                                                        100)
+                                                    .clamp(0.0, 1.0);
+                                            final PhotoModel photo =
+                                                queue[index];
+
+                                            return PhotoCard(
+                                              imageUrl: photo.imageUrl,
+                                              filename: photo.filename,
+                                              fileSize: photo.fileSize,
+                                              date: photo.date,
+                                              isTopCard: index == 0,
+                                              swipeDirection: swipeDirection,
+                                              swipeProgress: swipeProgress,
+                                            );
+                                          },
+                                    ),
+                            ),
+                          ),
+                        ),
                       ),
-                      iconColor: AppColors.success,
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ActionButton(
+                          icon: Icons.delete_outline_rounded,
+                          label: 'Delete',
+                          onPressed: queue.isEmpty ? null : _swipeLeft,
+                          backgroundColor: AppColors.danger.withValues(
+                            alpha: 0.18,
+                          ),
+                          iconColor: AppColors.danger,
+                        ),
+                        ActionButton(
+                          icon: Icons.undo_rounded,
+                          label: 'Undo',
+                          onPressed: _session.canUndo ? _undoSwipe : null,
+                          backgroundColor: Colors.white.withValues(alpha: 0.08),
+                          iconColor: AppColors.textPrimary,
+                        ),
+                        ActionButton(
+                          icon: Icons.favorite_outline_rounded,
+                          label: 'Keep',
+                          onPressed: queue.isEmpty ? null : _swipeRight,
+                          backgroundColor: AppColors.success.withValues(
+                            alpha: 0.18,
+                          ),
+                          iconColor: AppColors.success,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
@@ -197,11 +239,19 @@ class _SwipeHeader extends StatelessWidget {
     required this.currentNumber,
     required this.totalPhotos,
     required this.progressValue,
+    required this.reviewedCount,
+    required this.keptCount,
+    required this.deletedCount,
+    required this.storageSaved,
   });
 
   final int currentNumber;
   final int totalPhotos;
   final double progressValue;
+  final int reviewedCount;
+  final int keptCount;
+  final int deletedCount;
+  final String storageSaved;
 
   @override
   Widget build(BuildContext context) {
@@ -247,6 +297,40 @@ class _SwipeHeader extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 18),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final chipWidth = constraints.maxWidth >= 560
+                ? (constraints.maxWidth - 30) / 4
+                : (constraints.maxWidth - 10) / 2;
+
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                SizedBox(
+                  width: chipWidth,
+                  child: _HeaderChip(
+                    label: 'Reviewed',
+                    value: '$reviewedCount',
+                  ),
+                ),
+                SizedBox(
+                  width: chipWidth,
+                  child: _HeaderChip(label: 'Kept', value: '$keptCount'),
+                ),
+                SizedBox(
+                  width: chipWidth,
+                  child: _HeaderChip(label: 'Deleted', value: '$deletedCount'),
+                ),
+                SizedBox(
+                  width: chipWidth,
+                  child: _HeaderChip(label: 'Saved', value: storageSaved),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 14),
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: TweenAnimationBuilder<double>(
@@ -266,6 +350,49 @@ class _SwipeHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _HeaderChip extends StatelessWidget {
+  const _HeaderChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -293,21 +420,43 @@ class _SwipeBackground extends StatelessWidget {
 }
 
 class _CompletedState extends StatelessWidget {
-  const _CompletedState({required this.onReset});
+  const _CompletedState({
+    super.key,
+    required this.reviewedCount,
+    required this.keptCount,
+    required this.deletedCount,
+    required this.storageSaved,
+    required this.onRestart,
+    required this.canUndo,
+    required this.onUndo,
+  });
 
-  final VoidCallback onReset;
+  final int reviewedCount;
+  final int keptCount;
+  final int deletedCount;
+  final String storageSaved;
+  final VoidCallback onRestart;
+  final bool canUndo;
+  final VoidCallback onUndo;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.card,
         borderRadius: BorderRadius.circular(36),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        gradient: LinearGradient(
+          colors: [
+            AppColors.card.withValues(alpha: 0.96),
+            AppColors.cardElevated.withValues(alpha: 0.92),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.32),
-            blurRadius: 32,
+            color: Colors.black.withValues(alpha: 0.34),
+            blurRadius: 36,
             offset: const Offset(0, 18),
           ),
         ],
@@ -316,35 +465,149 @@ class _CompletedState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: const Icon(
-              Icons.auto_awesome_rounded,
-              size: 42,
-              color: AppColors.primary,
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.92, end: 1),
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) {
+              return Transform.scale(scale: value, child: child);
+            },
+            child: Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                gradient: AppColors.softGradient,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.accent.withValues(alpha: 0.28),
+                    blurRadius: 26,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.verified_rounded,
+                size: 46,
+                color: Colors.white,
+              ),
             ),
           ),
           const SizedBox(height: 20),
           Text(
-            'Queue complete',
+            'Cleanup Complete',
             style: Theme.of(context).textTheme.headlineMedium,
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
           Text(
-            'You have reviewed every mock photo. Undo to step back through the stack.',
+            'Every mock photo in this queue has been reviewed. Restart to run the session again or undo to step back.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: onReset,
-            icon: const Icon(Icons.undo_rounded),
-            label: const Text('Undo last swipe'),
+          Row(
+            children: [
+              Expanded(
+                child: _SummaryPill(
+                  title: 'Reviewed',
+                  value: '$reviewedCount',
+                  accentColor: AppColors.accent,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _SummaryPill(
+                  title: 'Kept',
+                  value: '$keptCount',
+                  accentColor: AppColors.success,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _SummaryPill(
+                  title: 'Deleted',
+                  value: '$deletedCount',
+                  accentColor: AppColors.danger,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _SummaryPill(
+                  title: 'Saved',
+                  value: storageSaved,
+                  accentColor: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: canUndo ? onUndo : null,
+                  icon: const Icon(Icons.undo_rounded),
+                  label: const Text('Undo'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onRestart,
+                  icon: const Icon(Icons.restart_alt_rounded),
+                  label: const Text('Restart'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryPill extends StatelessWidget {
+  const _SummaryPill({
+    required this.title,
+    required this.value,
+    required this.accentColor,
+  });
+
+  final String title;
+  final String value;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: accentColor.withValues(alpha: 0.16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),

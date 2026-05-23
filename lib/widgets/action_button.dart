@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../utils/app_colors.dart';
@@ -59,18 +61,31 @@ class _ActionButtonState extends State<ActionButton> {
             scale: _pressed ? 0.92 : 1,
             duration: const Duration(milliseconds: 140),
             curve: Curves.easeOutCubic,
-            child: Material(
-              color: widget.backgroundColor,
-              shape: const CircleBorder(),
-              elevation: 14,
-              shadowColor: Colors.black.withValues(alpha: 0.32),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: widget.onPressed,
-                child: SizedBox(
-                  width: 68,
-                  height: 68,
-                  child: Icon(widget.icon, color: widget.iconColor, size: 28),
+            child: AnimatedOpacity(
+              opacity: isEnabled ? 1 : 0.45,
+              duration: const Duration(milliseconds: 160),
+              child: ClipOval(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: Material(
+                    color: widget.backgroundColor.withValues(alpha: 0.86),
+                    shape: const CircleBorder(),
+                    elevation: isEnabled ? 16 : 6,
+                    shadowColor: Colors.black.withValues(alpha: 0.35),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: widget.onPressed,
+                      child: SizedBox(
+                        width: 74,
+                        height: 74,
+                        child: Icon(
+                          widget.icon,
+                          color: widget.iconColor,
+                          size: 29,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -80,7 +95,9 @@ class _ActionButtonState extends State<ActionButton> {
         Text(
           widget.label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: AppColors.textSecondary,
+            color: isEnabled
+                ? AppColors.textSecondary
+                : AppColors.textSecondary.withValues(alpha: 0.5),
             fontWeight: FontWeight.w600,
           ),
         ),

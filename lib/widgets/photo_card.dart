@@ -14,6 +14,7 @@ class PhotoCard extends StatelessWidget {
     required this.date,
     required this.isTopCard,
     this.swipeDirection,
+    this.swipeProgress = 0,
   });
 
   final String imageUrl;
@@ -22,15 +23,22 @@ class PhotoCard extends StatelessWidget {
   final String date;
   final bool isTopCard;
   final CardSwiperDirection? swipeDirection;
+  final double swipeProgress;
 
   @override
   Widget build(BuildContext context) {
     final shouldShowDelete = swipeDirection == CardSwiperDirection.left;
     final shouldShowKeep = swipeDirection == CardSwiperDirection.right;
+    final swipeAmount = swipeProgress.clamp(0.0, 1.0);
+    final swipeColor = shouldShowDelete
+        ? AppColors.danger
+        : shouldShowKeep
+        ? AppColors.success
+        : AppColors.primary;
     final cardScale = isTopCard ? 1.0 : 0.975;
     final cardElevation = isTopCard ? 30.0 : 18.0;
     final borderGlow = isTopCard
-        ? AppColors.primary.withValues(alpha: 0.18)
+        ? swipeColor.withValues(alpha: 0.18 + (swipeAmount * 0.18))
         : Colors.white.withValues(alpha: 0.05);
 
     return TweenAnimationBuilder<double>(
@@ -108,6 +116,38 @@ class PhotoCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (isTopCard)
+                Positioned.fill(
+                  child: AnimatedOpacity(
+                    opacity: swipeAmount * 0.24,
+                    duration: const Duration(milliseconds: 100),
+                    curve: Curves.easeOut,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: swipeDirection == CardSwiperDirection.left
+                              ? [
+                                  AppColors.danger.withValues(alpha: 0.38),
+                                  Colors.transparent,
+                                ]
+                              : swipeDirection == CardSwiperDirection.right
+                              ? [
+                                  AppColors.success.withValues(alpha: 0.34),
+                                  Colors.transparent,
+                                ]
+                              : [
+                                  AppColors.primary.withValues(alpha: 0.20),
+                                  Colors.transparent,
+                                ],
+                          begin: swipeDirection == CardSwiperDirection.left
+                              ? Alignment.centerLeft
+                              : Alignment.centerRight,
+                          end: Alignment.center,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               Positioned(
                 top: 16,
                 left: 16,
@@ -116,6 +156,7 @@ class PhotoCard extends StatelessWidget {
                   label: 'DELETE',
                   color: AppColors.danger,
                   rotation: -0.08,
+                  opacity: swipeDirection == null ? 0 : swipeAmount,
                 ),
               ),
               Positioned(
@@ -126,6 +167,7 @@ class PhotoCard extends StatelessWidget {
                   label: 'KEEP',
                   color: AppColors.success,
                   rotation: 0.08,
+                  opacity: swipeDirection == null ? 0 : swipeAmount,
                 ),
               ),
               Positioned(
@@ -224,23 +266,25 @@ class _SwipeLabel extends StatelessWidget {
     required this.label,
     required this.color,
     required this.rotation,
+    required this.opacity,
   });
 
   final bool visible;
   final String label;
   final Color color;
   final double rotation;
+  final double opacity;
 
   @override
   Widget build(BuildContext context) {
     return AnimatedOpacity(
-      opacity: visible ? 1 : 0,
+      opacity: visible ? opacity.clamp(0.0, 1.0) : 0,
       duration: const Duration(milliseconds: 140),
       curve: Curves.easeOut,
       child: Transform.rotate(
         angle: rotation,
         child: AnimatedScale(
-          scale: visible ? 1 : 0.92,
+          scale: visible ? 0.92 + (opacity.clamp(0.0, 1.0) * 0.12) : 0.92,
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOut,
           child: Container(
@@ -249,6 +293,13 @@ class _SwipeLabel extends StatelessWidget {
               color: color.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(color: color.withValues(alpha: 0.55)),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.22),
+                  blurRadius: 18,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
             child: Text(
               label,

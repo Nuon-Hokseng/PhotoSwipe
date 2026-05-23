@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../controllers/swipe_session_controller.dart';
+import '../models/swipe_action.dart';
 import '../utils/app_colors.dart';
+import '../utils/storage_formatters.dart';
 import '../widgets/stat_card.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -8,203 +11,199 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Dashboard',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Track cleanup progress and storage savings.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 20),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = constraints.maxWidth >= 390;
+    return AnimatedBuilder(
+      animation: SwipeSessionController.instance,
+      builder: (context, _) {
+        final session = SwipeSessionController.instance;
+        final reviewed = session.reviewedCount;
+        final total = session.totalPhotos;
+        final completion = total == 0 ? 0.0 : reviewed / total;
 
-                return GridView.count(
-                  crossAxisCount: isWide ? 2 : 1,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: isWide ? 1.22 : 2.6,
-                  children: const [
-                    StatCard(
-                      title: 'Storage Saved',
-                      value: '18.4 GB',
-                      icon: Icons.savings_rounded,
-                      accentColor: AppColors.success,
-                      subtitle: 'Across all cleanup sessions',
-                    ),
-                    StatCard(
-                      title: 'Cleanup Sessions',
-                      value: '24',
-                      icon: Icons.history_rounded,
-                      accentColor: AppColors.primary,
-                      subtitle: 'This month',
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 92,
-                    height: 92,
-                    child: Stack(
-                      fit: StackFit.expand,
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Dashboard',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Track cleanup progress and storage savings.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 20),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isWide = constraints.maxWidth >= 390;
+
+                    return GridView.count(
+                      crossAxisCount: isWide ? 2 : 1,
+                      mainAxisSpacing: 14,
+                      crossAxisSpacing: 14,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      childAspectRatio: isWide ? 1.22 : 2.6,
                       children: [
-                        CircularProgressIndicator(
-                          value: 0.72,
-                          strokeWidth: 10,
-                          backgroundColor: const Color(0xFF334155),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            AppColors.accent,
-                          ),
-                          strokeCap: StrokeCap.round,
+                        StatCard(
+                          title: 'Reviewed',
+                          value: '$reviewed',
+                          icon: Icons.fact_check_rounded,
+                          accentColor: AppColors.accent,
+                          subtitle: 'Mock swipe decisions',
                         ),
-                        Center(
-                          child: Text(
-                            '72%',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                        StatCard(
+                          title: 'Kept',
+                          value: '${session.keptCount}',
+                          icon: Icons.favorite_rounded,
+                          accentColor: AppColors.success,
+                          subtitle: 'Photos kept locally',
+                        ),
+                        StatCard(
+                          title: 'Deleted',
+                          value: '${session.deletedCount}',
+                          icon: Icons.delete_forever_rounded,
+                          accentColor: AppColors.danger,
+                          subtitle: 'Marked for removal',
+                        ),
+                        StatCard(
+                          title: 'Saved',
+                          value: formatStorageBytes(
+                            session.estimatedStorageSavedBytes,
                           ),
+                          icon: Icons.savings_rounded,
+                          accentColor: AppColors.primary,
+                          subtitle: 'Mock storage estimate',
                         ),
                       ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
                     ),
                   ),
-                  const SizedBox(width: 18),
-                  Expanded(
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 92,
+                        height: 92,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            CircularProgressIndicator(
+                              value: completion,
+                              strokeWidth: 10,
+                              backgroundColor: const Color(0xFF334155),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                AppColors.accent,
+                              ),
+                              strokeCap: StrokeCap.round,
+                            ),
+                            Center(
+                              child: Text(
+                                '${(completion * 100).round()}%',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 18),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Cleanup completion',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Completed $reviewed of $total mock photos with all state kept locally in memory.',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Cleanup completion',
+                          'Swipe history',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Weekly chart placeholder with future analytics integration.',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                        const SizedBox(height: 14),
+                        Expanded(
+                          child: session.history.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    'No local swipe actions yet.',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
+                                  ),
+                                )
+                              : ListView.separated(
+                                  itemCount: session.history.length,
+                                  separatorBuilder: (context, index) =>
+                                      const SizedBox(height: 8),
+                                  itemBuilder: (context, index) {
+                                    final record = session.history[index];
+                                    final isDelete =
+                                        record.action == SwipeActionType.delete;
+
+                                    return _ActivityTile(
+                                      title: isDelete
+                                          ? 'Deleted photo'
+                                          : 'Kept photo',
+                                      subtitle:
+                                          '${record.photoId} • ${formatStorageBytes(record.photoSizeBytes)} • ${record.timestamp.toIso8601String().substring(11, 19)}',
+                                      color: isDelete
+                                          ? AppColors.danger
+                                          : AppColors.success,
+                                    );
+                                  },
+                                ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              width: double.infinity,
-              height: 160,
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Weekly chart',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: List.generate(
-                          7,
-                          (index) => Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              child: Container(
-                                height: 32.0 + (index * 12.0),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      AppColors.primary,
-                                      AppColors.accent,
-                                    ],
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                  ),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 20),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Recent activity',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 14),
-                  _ActivityTile(
-                    title: 'Vacation album cleaned',
-                    subtitle: 'Saved 2.1 GB',
-                    color: AppColors.success,
-                  ),
-                  const SizedBox(height: 12),
-                  _ActivityTile(
-                    title: 'Duplicates reviewed',
-                    subtitle: '34 photos pending',
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(height: 12),
-                  _ActivityTile(
-                    title: 'Screenshots queue',
-                    subtitle: 'Ready for next session',
-                    color: AppColors.accent,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
