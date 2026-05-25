@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 
+import '../animations/premium_animations.dart';
 import '../controllers/swipe_session_controller.dart';
 import '../models/photo_model.dart';
 import '../models/swipe_action.dart';
@@ -31,7 +33,9 @@ class _SwipeScreenState extends State<SwipeScreen> {
     int? currentIndex,
     CardSwiperDirection direction,
   ) async {
-    // Future: add light haptic feedback here when device vibration support is enabled.
+    // Future haptic hook:
+    // swipe right -> soft success vibration
+    // swipe left -> stronger delete vibration
     _session.swipe(
       direction == CardSwiperDirection.left
           ? SwipeActionType.delete
@@ -182,8 +186,15 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                               fileSize: photo.fileSize,
                                               date: photo.date,
                                               isTopCard: index == 0,
+                                              stackDepth: index,
                                               swipeDirection: swipeDirection,
                                               swipeProgress: swipeProgress,
+                                              dragOffsetX:
+                                                  horizontalOffsetPercentage
+                                                      .toDouble(),
+                                              dragOffsetY:
+                                                  verticalOffsetPercentage
+                                                      .toDouble(),
                                             );
                                           },
                                     ),
@@ -286,12 +297,18 @@ class _SwipeHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
               ),
-              child: Text(
-                '$currentNumber/$totalPhotos',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w800,
-                ),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 240),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child: Text(
+                  '$currentNumber / $totalPhotos',
+                  key: ValueKey('$currentNumber-$totalPhotos'),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ).animate().fadeIn(duration: 220.ms).slideY(begin: 0.15),
               ),
             ),
           ],
@@ -331,24 +348,7 @@ class _SwipeHeader extends StatelessWidget {
           },
         ),
         const SizedBox(height: 14),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: progressValue),
-            duration: const Duration(milliseconds: 320),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, _) {
-              return LinearProgressIndicator(
-                value: value,
-                minHeight: 6,
-                backgroundColor: const Color(0xFF334155),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  AppColors.accent,
-                ),
-              );
-            },
-          ),
-        ),
+        PremiumGradientProgressBar(value: progressValue, height: 8),
       ],
     );
   }

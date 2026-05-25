@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
+import '../animations/premium_animations.dart';
 import '../utils/app_colors.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/stat_card.dart';
@@ -15,72 +17,77 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: AppColors.softGradient,
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.25),
-                    blurRadius: 36,
-                    offset: const Offset(0, 18),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.16),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: const Icon(
-                          Icons.auto_awesome_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'PhotoSwipe',
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                ),
+            PremiumAnimations.fadeSlideIn(
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: AppColors.softGradient,
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.25),
+                      blurRadius: 36,
+                      offset: const Offset(0, 18),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(18),
                           ),
-                          Text(
-                            'Smart AI-powered photo cleanup',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.82),
-                                ),
+                          child: const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: Colors.white,
+                            size: 28,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-                  GradientButton(
-                    label: 'Start Cleaning',
-                    icon: Icons.arrow_forward_rounded,
-                    onPressed: () {},
-                  ),
-                ],
+                        ),
+                        const SizedBox(width: 14),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'PhotoSwipe',
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                            Text(
+                              'Smart AI-powered photo cleanup',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.82),
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 28),
+                    GradientButton(
+                      label: 'Start Cleaning',
+                      icon: Icons.arrow_forward_rounded,
+                      onPressed: () {},
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 22),
-            Text('Overview', style: Theme.of(context).textTheme.titleLarge),
+            PremiumAnimations.fadeSlideIn(
+              Text('Overview', style: Theme.of(context).textTheme.titleLarge),
+              delayMs: 80,
+            ),
             const SizedBox(height: 14),
             LayoutBuilder(
               builder: (context, constraints) {
@@ -120,39 +127,33 @@ class HomeScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 24),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Quick cleanup progress',
-                    style: Theme.of(context).textTheme.titleMedium,
+            PremiumAnimations.fadeSlideIn(
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
                   ),
-                  const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: const LinearProgressIndicator(
-                      value: 0.64,
-                      minHeight: 10,
-                      backgroundColor: Color(0xFF334155),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.primary,
-                      ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Quick cleanup progress',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '64% ready for cleanup session',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    const PremiumGradientProgressBar(value: 0.64, height: 10),
+                    const SizedBox(height: 12),
+                    PremiumCountText(
+                      value: '64% ready for cleanup session',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

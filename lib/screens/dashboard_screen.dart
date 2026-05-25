@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
+import '../animations/premium_animations.dart';
 import '../controllers/swipe_session_controller.dart';
 import '../models/swipe_action.dart';
 import '../utils/app_colors.dart';
@@ -82,123 +84,148 @@ class DashboardScreen extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 20),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 92,
-                        height: 92,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            CircularProgressIndicator(
-                              value: completion,
-                              strokeWidth: 10,
-                              backgroundColor: const Color(0xFF334155),
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                AppColors.accent,
-                              ),
-                              strokeCap: StrokeCap.round,
-                            ),
-                            Center(
-                              child: Text(
-                                '${(completion * 100).round()}%',
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(
-                                      color: AppColors.textPrimary,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
+                PremiumAnimations.fadeSlideIn(
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
                       ),
-                      const SizedBox(width: 18),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Cleanup completion',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Completed $reviewed of $total mock photos with all state kept locally in memory.',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  width: double.infinity,
-                  height: 160,
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
                     ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Text(
-                          'Swipe history',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 14),
-                        Expanded(
-                          child: session.history.isEmpty
-                              ? Center(
-                                  child: Text(
-                                    'No local swipe actions yet.',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium,
-                                  ),
-                                )
-                              : ListView.separated(
-                                  itemCount: session.history.length,
-                                  separatorBuilder: (context, index) =>
-                                      const SizedBox(height: 8),
-                                  itemBuilder: (context, index) {
-                                    final record = session.history[index];
-                                    final isDelete =
-                                        record.action == SwipeActionType.delete;
-
-                                    return _ActivityTile(
-                                      title: isDelete
-                                          ? 'Deleted photo'
-                                          : 'Kept photo',
-                                      subtitle:
-                                          '${record.photoId} • ${formatStorageBytes(record.photoSizeBytes)} • ${record.timestamp.toIso8601String().substring(11, 19)}',
-                                      color: isDelete
-                                          ? AppColors.danger
-                                          : AppColors.success,
-                                    );
-                                  },
+                        SizedBox(
+                          width: 92,
+                          height: 92,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              TweenAnimationBuilder<double>(
+                                tween: Tween<double>(begin: 0, end: completion),
+                                duration: PremiumAnimations.premium,
+                                curve: Curves.easeOutCubic,
+                                builder: (context, value, _) {
+                                  return CircularProgressIndicator(
+                                    value: value,
+                                    strokeWidth: 10,
+                                    backgroundColor: const Color(0xFF334155),
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                          AppColors.accent,
+                                        ),
+                                    strokeCap: StrokeCap.round,
+                                  );
+                                },
+                              ),
+                              Center(
+                                child: PremiumCountText(
+                                  value: '${(completion * 100).round()}%',
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.w800,
+                                      ),
                                 ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 18),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Cleanup completion',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Completed $reviewed of $total mock photos with all state kept locally in memory.',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
+                PremiumAnimations.fadeSlideIn(
+                  Container(
+                    width: double.infinity,
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Swipe history',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 14),
+                          Expanded(
+                            child: session.history.isEmpty
+                                ? Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const PremiumMetricSkeleton(
+                                          height: 14,
+                                          width: 160,
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          'No local swipe actions yet.',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium,
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    itemCount: session.history.length,
+                                    separatorBuilder: (context, index) =>
+                                        const SizedBox(height: 8),
+                                    itemBuilder: (context, index) {
+                                      final record = session.history[index];
+                                      final isDelete =
+                                          record.action ==
+                                          SwipeActionType.delete;
+
+                                      return _ActivityTile(
+                                        title: isDelete
+                                            ? 'Deleted photo'
+                                            : 'Kept photo',
+                                        subtitle:
+                                            '${record.photoId} • ${formatStorageBytes(record.photoSizeBytes)} • ${record.timestamp.toIso8601String().substring(11, 19)}',
+                                        color: isDelete
+                                            ? AppColors.danger
+                                            : AppColors.success,
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                PremiumAnimations.fadeSlideIn(const _TrendChartPlaceholder()),
               ],
             ),
           ),
@@ -260,6 +287,78 @@ class _ActivityTile extends StatelessWidget {
           const Icon(
             Icons.chevron_right_rounded,
             color: AppColors.textSecondary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TrendChartPlaceholder extends StatelessWidget {
+  const _TrendChartPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final heights = <double>[0.32, 0.48, 0.78, 0.58, 0.86, 0.74];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Trend preview', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 120,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (var index = 0; index < heights.length; index++)
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: index == 0 ? 0 : 4,
+                      ),
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0, end: heights[index]),
+                        duration: Duration(milliseconds: 420 + (index * 70)),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, value, _) {
+                          return Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Container(
+                              height: 120 * value,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [AppColors.primary, AppColors.accent],
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.accent.withValues(
+                                      alpha: 0.18,
+                                    ),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),

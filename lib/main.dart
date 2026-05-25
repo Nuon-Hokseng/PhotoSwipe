@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/swipe_screen.dart';
+import 'utils/app_colors.dart';
 import 'utils/app_theme.dart';
 
 void main() {
@@ -32,6 +33,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
+  int _previousIndex = 0;
 
   final List<Widget> _screens = const [
     HomeScreen(),
@@ -39,17 +41,54 @@ class _AppShellState extends State<AppShell> {
     DashboardScreen(),
   ];
 
+  void _selectScreen(int index) {
+    if (index == _currentIndex) {
+      return;
+    }
+
+    setState(() {
+      _previousIndex = _currentIndex;
+      _currentIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final moveForward = _currentIndex >= _previousIndex;
+
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      extendBody: true,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 420),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          final offsetTween = Tween<Offset>(
+            begin: Offset(moveForward ? 0.08 : -0.08, 0.03),
+            end: Offset.zero,
+          );
+
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: offsetTween.animate(animation),
+              child: child,
+            ),
+          );
+        },
+        child: KeyedSubtree(
+          key: ValueKey<int>(_currentIndex),
+          child: _screens[_currentIndex],
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        animationDuration: const Duration(milliseconds: 360),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        height: 76,
+        backgroundColor: AppColors.card.withValues(alpha: 0.96),
+        surfaceTintColor: Colors.transparent,
+        onDestinationSelected: _selectScreen,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_rounded),
