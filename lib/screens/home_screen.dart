@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 import '../animations/premium_animations.dart';
 import '../utils/app_colors.dart';
@@ -7,7 +6,9 @@ import '../widgets/gradient_button.dart';
 import '../widgets/stat_card.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.onStartCleanup});
+
+  final VoidCallback? onStartCleanup;
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +78,7 @@ class HomeScreen extends StatelessWidget {
                     GradientButton(
                       label: 'Start Cleaning',
                       icon: Icons.arrow_forward_rounded,
-                      onPressed: () {},
+                      onPressed: onStartCleanup ?? () {},
                     ),
                   ],
                 ),

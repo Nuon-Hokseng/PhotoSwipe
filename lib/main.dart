@@ -35,12 +35,6 @@ class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
   int _previousIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    SwipeScreen(),
-    DashboardScreen(),
-  ];
-
   void _selectScreen(int index) {
     if (index == _currentIndex) {
       return;
@@ -54,6 +48,11 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final screens = <Widget>[
+      HomeScreen(onStartCleanup: () => _selectScreen(1)),
+      const SwipeScreen(),
+      DashboardScreen(onStartCleanup: () => _selectScreen(1)),
+    ];
     final moveForward = _currentIndex >= _previousIndex;
 
     return Scaffold(
@@ -78,7 +77,7 @@ class _AppShellState extends State<AppShell> {
         },
         child: KeyedSubtree(
           key: ValueKey<int>(_currentIndex),
-          child: _screens[_currentIndex],
+          child: screens[_currentIndex],
         ),
       ),
       bottomNavigationBar: NavigationBar(
