@@ -55,6 +55,23 @@ class SwipeSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Swipe a photo at an arbitrary index in the queue.
+  /// This is useful when the UI component reports the index of the
+  /// card being swiped (e.g. `CardSwiper`) which may not always be 0.
+  void swipeAt(int index, SwipeActionType action) {
+    if (index < 0 || index >= _queue.length) {
+      return;
+    }
+
+    final photo = _queue.removeAt(index);
+    if (action == SwipeActionType.delete) {
+      _analytics.addDeleteAction(photo);
+    } else {
+      _analytics.addKeepAction(photo);
+    }
+    notifyListeners();
+  }
+
   void undo() {
     if (!canUndo) {
       return;

@@ -36,10 +36,17 @@ class _SwipeScreenState extends State<SwipeScreen> {
     // Future haptic hook:
     // swipe right -> soft success vibration
     // swipe left -> stronger delete vibration
+    // Debug: log queue and indices to help diagnose skipping
+    debugPrint(
+      'onSwipe called: previousIndex=$previousIndex currentIndex=$currentIndex queue=[${_session.queue.map((p) => p.id).join(",")}].',
+    );
     _session.swipe(
       direction == CardSwiperDirection.left
           ? SwipeActionType.delete
           : SwipeActionType.keep,
+    );
+    debugPrint(
+      'after session.swipe: queue now=[${_session.queue.map((p) => p.id).join(",")}].',
     );
     return true;
   }

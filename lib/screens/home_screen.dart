@@ -4,6 +4,7 @@ import '../animations/premium_animations.dart';
 import '../utils/app_colors.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/stat_card.dart';
+import '../widgets/premium_ui.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, this.onStartCleanup});
@@ -19,20 +20,11 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             PremiumAnimations.fadeSlideIn(
-              Container(
-                width: double.infinity,
+              PremiumSurface(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: AppColors.softGradient,
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.25),
-                      blurRadius: 36,
-                      offset: const Offset(0, 18),
-                    ),
-                  ],
-                ),
+                borderRadius: 32,
+                gradient: AppColors.softGradient,
+                shadowColor: AppColors.primary.withOpacity(0.24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -42,7 +34,7 @@ class HomeScreen extends StatelessWidget {
                           width: 52,
                           height: 52,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.16),
+                            color: Colors.white.withOpacity(0.16),
                             borderRadius: BorderRadius.circular(18),
                           ),
                           child: const Icon(
@@ -64,10 +56,10 @@ class HomeScreen extends StatelessWidget {
                                   ),
                             ),
                             Text(
-                              'Smart AI-powered photo cleanup',
+                              'Smart local photo cleanup',
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.82),
+                                    color: Colors.white.withOpacity(0.82),
                                   ),
                             ),
                           ],
@@ -86,7 +78,10 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 22),
             PremiumAnimations.fadeSlideIn(
-              Text('Overview', style: Theme.of(context).textTheme.titleLarge),
+              const PremiumSectionHeader(
+                title: 'Overview',
+                subtitle: 'A compact snapshot of the mock cleanup workspace.',
+              ),
               delayMs: 80,
             ),
             const SizedBox(height: 14),
