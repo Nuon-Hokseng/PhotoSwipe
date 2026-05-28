@@ -1,4 +1,4 @@
-# background_remover
+# Photo Swipe
 
 A new Flutter project.
 
