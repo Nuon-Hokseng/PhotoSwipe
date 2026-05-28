@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
@@ -10,6 +11,7 @@ import '../utils/app_colors.dart';
 class PhotoCard extends StatelessWidget {
   const PhotoCard({
     super.key,
+    required this.imageBytes,
     required this.imageUrl,
     required this.filename,
     required this.fileSize,
@@ -22,7 +24,8 @@ class PhotoCard extends StatelessWidget {
     this.dragOffsetY = 0,
   });
 
-  final String imageUrl;
+  final Uint8List? imageBytes;
+  final String? imageUrl;
   final String filename;
   final String fileSize;
   final String date;
@@ -92,41 +95,7 @@ class PhotoCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-                filterQuality: FilterQuality.high,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) {
-                    return AnimatedOpacity(
-                      opacity: 1,
-                      duration: const Duration(milliseconds: 220),
-                      child: child,
-                    );
-                  }
-
-                  return Container(
-                    color: AppColors.card,
-                    alignment: Alignment.center,
-                    child: const Padding(
-                      padding: EdgeInsets.all(24),
-                      child: PremiumShimmer(height: 18, width: 140),
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: AppColors.card,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.image_not_supported_rounded,
-                      color: AppColors.textSecondary,
-                      size: 42,
-                    ),
-                  );
-                },
-              ),
+              _buildImage(),
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -249,39 +218,64 @@ class PhotoCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Positioned(
-                top: 16,
-                left: 16,
-                right: 16,
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08),
-                        ),
-                      ),
-                      child: Text(
-                        'Mock photo',
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildImage() {
+    if (imageBytes != null) {
+      return Image.memory(
+        imageBytes!,
+        fit: BoxFit.cover,
+        alignment: Alignment.center,
+        filterQuality: FilterQuality.high,
+      );
+    }
+
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return Image.network(
+        imageUrl!,
+        fit: BoxFit.cover,
+        alignment: Alignment.center,
+        filterQuality: FilterQuality.high,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) {
+            return AnimatedOpacity(
+              opacity: 1,
+              duration: const Duration(milliseconds: 220),
+              child: child,
+            );
+          }
+
+          return Container(
+            color: AppColors.card,
+            alignment: Alignment.center,
+            child: const Padding(
+              padding: EdgeInsets.all(24),
+              child: PremiumShimmer(height: 18, width: 140),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return _buildErrorImage();
+        },
+      );
+    }
+
+    return _buildErrorImage();
+  }
+
+  Widget _buildErrorImage() {
+    return Container(
+      color: AppColors.card,
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.image_not_supported_rounded,
+        color: AppColors.textSecondary,
+        size: 42,
       ),
     );
   }

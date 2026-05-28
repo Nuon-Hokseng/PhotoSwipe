@@ -8,7 +8,7 @@ class AnalyticsController extends ChangeNotifier {
     : _session = CleanupSession.initial(totalPhotos: totalPhotos);
 
   static final AnalyticsController instance = AnalyticsController._(
-    totalPhotos: PhotoModel.mockPhotos.length,
+    totalPhotos: 0,
   );
 
   CleanupSession _session;

@@ -79,13 +79,13 @@ class StatCard extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(11),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: accentColor.withValues(alpha: 0.16),
                           shape: BoxShape.circle,
@@ -93,9 +93,9 @@ class StatCard extends StatelessWidget {
                             color: accentColor.withValues(alpha: 0.22),
                           ),
                         ),
-                        child: Icon(icon, color: accentColor, size: 20),
+                        child: Icon(icon, color: accentColor, size: 24),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 12),
                       PremiumCountText(
                         value: value,
                         style: Theme.of(context).textTheme.headlineSmall
@@ -104,18 +104,22 @@ class StatCard extends StatelessWidget {
                               fontWeight: FontWeight.w800,
                             ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(
                         title,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       if (subtitle != null) ...[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 3),
                         Text(
                           subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
