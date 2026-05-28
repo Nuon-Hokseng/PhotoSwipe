@@ -7,11 +7,29 @@ class SessionStats {
   final String date;        
 
   const SessionStats({
-    this.totalReviewed = 0,
-    this.totalKept = 0,
-    this.totalDeleted = 0,
-    this.storageSaved = 0,
+    required this.totalReviewed,
+    required this.totalKept,
+    required this.totalDeleted,
+    required this.storageSaved,
     required this.sessionStart,
     required this.date,
   });
+
+  factory SessionStats.fromJson(Map<String, dynamic> json) => SessionStats(
+        totalReviewed: json['totalReviewed'] as int,
+        totalKept: json['totalKept'] as int,
+        totalDeleted: json['totalDeleted'] as int,
+        storageSaved: json['storageSaved'] as int,
+        sessionStart: json['sessionStart'] as int,
+        date: json['date'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'totalReviewed': totalReviewed,
+        'totalKept': totalKept,
+        'totalDeleted': totalDeleted,
+        'storageSaved': storageSaved,
+        'sessionStart': sessionStart,
+        'date': date,
+      };
 }

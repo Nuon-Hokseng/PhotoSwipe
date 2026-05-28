@@ -17,15 +17,23 @@ class PhotoItem {
     required this.mimeType,
   });
 
-  Map<String, dynamic> toJson() => {
-    'id': id, 'uri': uri, 'size': size,
-    'createdAt': createdAt, 'width': width,
-    'height': height, 'mimeType': mimeType,
-  };
-
   factory PhotoItem.fromJson(Map<String, dynamic> json) => PhotoItem(
-    id: json['id'], uri: json['uri'], size: json['size'],
-    createdAt: json['createdAt'], width: json['width'],
-    height: json['height'], mimeType: json['mimeType'],
-  );
+        id: json['id'] as String,
+        uri: json['uri'] as String,
+        size: json['size'] as int,
+        createdAt: json['createdAt'] as int,
+        width: json['width'] as int,
+        height: json['height'] as int,
+        mimeType: json['mimeType'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'uri': uri,
+        'size': size,
+        'createdAt': createdAt,
+        'width': width,
+        'height': height,
+        'mimeType': mimeType,
+      };
 }
