@@ -1,8 +1,10 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 
+import '../animations/premium_animations.dart';
 import '../utils/app_colors.dart';
 
 class PhotoCard extends StatelessWidget {
@@ -13,7 +15,11 @@ class PhotoCard extends StatelessWidget {
     required this.fileSize,
     required this.date,
     required this.isTopCard,
+    required this.stackDepth,
     this.swipeDirection,
+    this.swipeProgress = 0,
+    this.dragOffsetX = 0,
+    this.dragOffsetY = 0,
   });
 
   final String imageUrl;
@@ -21,27 +27,47 @@ class PhotoCard extends StatelessWidget {
   final String fileSize;
   final String date;
   final bool isTopCard;
+  final int stackDepth;
   final CardSwiperDirection? swipeDirection;
+  final double swipeProgress;
+  final double dragOffsetX;
+  final double dragOffsetY;
 
   @override
   Widget build(BuildContext context) {
     final shouldShowDelete = swipeDirection == CardSwiperDirection.left;
     final shouldShowKeep = swipeDirection == CardSwiperDirection.right;
-    final cardScale = isTopCard ? 1.0 : 0.975;
+    final swipeAmount = swipeProgress.clamp(0.0, 1.0);
+    final swipeColor = shouldShowDelete
+        ? AppColors.danger
+        : shouldShowKeep
+        ? AppColors.success
+        : AppColors.primary;
+    final dragTilt = (dragOffsetX / 100).clamp(-1.0, 1.0) * 0.08;
+    final cardScale = isTopCard
+        ? 1.0 + (swipeAmount * 0.02)
+        : 0.974 - (stackDepth * 0.01);
     final cardElevation = isTopCard ? 30.0 : 18.0;
+    final stackLift = isTopCard ? 0.0 : math.min(stackDepth, 2) * 12.0;
     final borderGlow = isTopCard
-        ? AppColors.primary.withValues(alpha: 0.18)
+        ? swipeColor.withValues(alpha: 0.18 + (swipeAmount * 0.18))
         : Colors.white.withValues(alpha: 0.05);
 
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0.94, end: cardScale),
-      duration: const Duration(milliseconds: 220),
+      duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
       builder: (context, value, child) {
-        return Transform.scale(scale: value, child: child);
+        return Transform.translate(
+          offset: Offset(0, stackLift - (isTopCard ? swipeAmount * 7 : 0)),
+          child: Transform.rotate(
+            angle: isTopCard ? dragTilt : 0.012 + (stackDepth * 0.006),
+            child: Transform.scale(scale: value, child: child),
+          ),
+        );
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
+        duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(32),
@@ -73,13 +99,20 @@ class PhotoCard extends StatelessWidget {
                 filterQuality: FilterQuality.high,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) {
-                    return child;
+                    return AnimatedOpacity(
+                      opacity: 1,
+                      duration: const Duration(milliseconds: 220),
+                      child: child,
+                    );
                   }
 
                   return Container(
                     color: AppColors.card,
                     alignment: Alignment.center,
-                    child: const CircularProgressIndicator.adaptive(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: PremiumShimmer(height: 18, width: 140),
+                    ),
                   );
                 },
                 errorBuilder: (context, error, stackTrace) {
@@ -108,6 +141,38 @@ class PhotoCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (isTopCard)
+                Positioned.fill(
+                  child: AnimatedOpacity(
+                    opacity: swipeAmount * 0.24,
+                    duration: const Duration(milliseconds: 100),
+                    curve: Curves.easeOut,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: swipeDirection == CardSwiperDirection.left
+                              ? [
+                                  AppColors.danger.withValues(alpha: 0.38),
+                                  Colors.transparent,
+                                ]
+                              : swipeDirection == CardSwiperDirection.right
+                              ? [
+                                  AppColors.success.withValues(alpha: 0.34),
+                                  Colors.transparent,
+                                ]
+                              : [
+                                  AppColors.primary.withValues(alpha: 0.20),
+                                  Colors.transparent,
+                                ],
+                          begin: swipeDirection == CardSwiperDirection.left
+                              ? Alignment.centerLeft
+                              : Alignment.centerRight,
+                          end: Alignment.center,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               Positioned(
                 top: 16,
                 left: 16,
@@ -116,6 +181,8 @@ class PhotoCard extends StatelessWidget {
                   label: 'DELETE',
                   color: AppColors.danger,
                   rotation: -0.08,
+                  opacity: swipeDirection == null ? 0 : swipeAmount,
+                  shake: true,
                 ),
               ),
               Positioned(
@@ -126,6 +193,8 @@ class PhotoCard extends StatelessWidget {
                   label: 'KEEP',
                   color: AppColors.success,
                   rotation: 0.08,
+                  opacity: swipeDirection == null ? 0 : swipeAmount,
+                  shake: false,
                 ),
               ),
               Positioned(
@@ -224,38 +293,55 @@ class _SwipeLabel extends StatelessWidget {
     required this.label,
     required this.color,
     required this.rotation,
+    required this.opacity,
+    required this.shake,
   });
 
   final bool visible;
   final String label;
   final Color color;
   final double rotation;
+  final double opacity;
+  final bool shake;
 
   @override
   Widget build(BuildContext context) {
+    final animatedOpacity = visible ? opacity.clamp(0.0, 1.0) : 0.0;
+
     return AnimatedOpacity(
-      opacity: visible ? 1 : 0,
+      opacity: animatedOpacity,
       duration: const Duration(milliseconds: 140),
       curve: Curves.easeOut,
-      child: Transform.rotate(
-        angle: rotation,
-        child: AnimatedScale(
-          scale: visible ? 1 : 0.92,
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOut,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: color.withValues(alpha: 0.55)),
-            ),
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.2,
+      child: AnimatedScale(
+        scale: visible ? 0.92 + (animatedOpacity * 0.14) : 0.9,
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutBack,
+        child: Transform.translate(
+          offset: Offset(shake ? math.sin(animatedOpacity * 24) * 1.6 : 0, 0),
+          child: Transform.rotate(
+            angle:
+                rotation + (shake ? math.sin(animatedOpacity * 18) * 0.01 : 0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: color.withValues(alpha: 0.7)),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.28),
+                    blurRadius: 20,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
               ),
             ),
           ),
