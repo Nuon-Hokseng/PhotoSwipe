@@ -15,7 +15,7 @@ void main() {
 
     expect(find.text('PhotoSwipe'), findsOneWidget);
     expect(find.text('Home'), findsWidgets);
-    expect(find.text('Clean'), findsWidgets);Pu
+    expect(find.text('Clean'), findsWidgets);
     expect(find.text('Dashboard'), findsWidgets);
   });
 }

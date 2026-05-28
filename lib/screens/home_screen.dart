@@ -19,6 +19,58 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 22),
+            PremiumAnimations.fadeSlideIn(
+              const PremiumSectionHeader(
+                title: 'Overview',
+                subtitle: 'A compact snapshot of the mock cleanup workspace.',
+              ),
+              delayMs: 80,
+            ),
+            const SizedBox(height: 14),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 350;
+                final textScale = MediaQuery.textScaleFactorOf(
+                  context,
+                ).clamp(1.0, 1.3);
+                final baseRatio = isWide ? 1 : 2.0;
+                final cardRatio = (baseRatio / textScale).clamp(1.0, 2.2);
+
+                return GridView.count(
+                  crossAxisCount: isWide ? 2 : 1,
+                  mainAxisSpacing: 14,
+                  crossAxisSpacing: isWide ? 14 : 10,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: cardRatio,
+                  children: const [
+                    StatCard(
+                      title: 'Total Photos',
+                      value: '1,248',
+                      icon: Icons.photo_library_rounded,
+                      accentColor: AppColors.primary,
+                      subtitle: '+12 today',
+                    ),
+                    StatCard(
+                      title: 'Storage Used',
+                      value: '42 GB',
+                      icon: Icons.storage_rounded,
+                      accentColor: AppColors.accent,
+                      subtitle: '78% of device',
+                    ),
+                    StatCard(
+                      title: 'Estimated Cleanup',
+                      value: '9.6 GB',
+                      icon: Icons.cleaning_services_rounded,
+                      accentColor: AppColors.success,
+                      subtitle: 'Potential saved',
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 14),
             PremiumAnimations.fadeSlideIn(
               PremiumSurface(
                 padding: const EdgeInsets.all(24),
@@ -75,52 +127,6 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 22),
-            PremiumAnimations.fadeSlideIn(
-              const PremiumSectionHeader(
-                title: 'Overview',
-                subtitle: 'A compact snapshot of the mock cleanup workspace.',
-              ),
-              delayMs: 80,
-            ),
-            const SizedBox(height: 14),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = constraints.maxWidth >= 390;
-
-                return GridView.count(
-                  crossAxisCount: isWide ? 2 : 1,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: isWide ? 1.28 : 2.6,
-                  children: const [
-                    StatCard(
-                      title: 'Total Photos',
-                      value: '1,248',
-                      icon: Icons.photo_library_rounded,
-                      accentColor: AppColors.primary,
-                      subtitle: '+12 today',
-                    ),
-                    StatCard(
-                      title: 'Storage Used',
-                      value: '42 GB',
-                      icon: Icons.storage_rounded,
-                      accentColor: AppColors.accent,
-                      subtitle: '78% of device',
-                    ),
-                    StatCard(
-                      title: 'Estimated Cleanup',
-                      value: '9.6 GB',
-                      icon: Icons.cleaning_services_rounded,
-                      accentColor: AppColors.success,
-                      subtitle: 'Potential saved',
-                    ),
-                  ],
-                );
-              },
             ),
             const SizedBox(height: 24),
             PremiumAnimations.fadeSlideIn(

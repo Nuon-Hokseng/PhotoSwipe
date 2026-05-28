@@ -55,6 +55,14 @@ class DashboardScreen extends StatelessWidget {
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final isWide = constraints.maxWidth >= 520;
+                        final textScale = MediaQuery.textScaleFactorOf(
+                          context,
+                        ).clamp(1.0, 1.3);
+                        final baseRatio = isWide ? 1.22 : 2.0;
+                        final cardRatio = (baseRatio / textScale).clamp(
+                          1.0,
+                          2.2,
+                        );
 
                         return GridView.count(
                           crossAxisCount: isWide ? 2 : 1,
@@ -62,7 +70,7 @@ class DashboardScreen extends StatelessWidget {
                           crossAxisSpacing: 14,
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          childAspectRatio: isWide ? 1.32 : 2.55,
+                          childAspectRatio: cardRatio,
                           children: [
                             StatCard(
                               title: 'Photos Reviewed',
@@ -250,11 +258,36 @@ class _OverviewPanel extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 108,
-            height: 108,
+            width: 112,
+            height: 112,
             child: Stack(
               alignment: Alignment.center,
               children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        AppColors.primary.withValues(alpha: 0.18),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.15, 1.0],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 112,
+                  height: 112,
+                  child: CircularProgressIndicator(
+                    value: 1,
+                    strokeWidth: 12,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.white.withValues(alpha: 0.08),
+                    ),
+                    backgroundColor: Colors.transparent,
+                    strokeCap: StrokeCap.round,
+                  ),
+                ),
                 TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 0, end: session.completionRate),
                   duration: PremiumAnimations.premium,
@@ -270,8 +303,8 @@ class _OverviewPanel extends StatelessWidget {
                       },
                       child: CircularProgressIndicator(
                         value: value,
-                        strokeWidth: 11,
-                        backgroundColor: const Color(0xFF334155),
+                        strokeWidth: 12,
+                        backgroundColor: Colors.transparent,
                         valueColor: const AlwaysStoppedAnimation<Color>(
                           Colors.white,
                         ),
@@ -280,23 +313,41 @@ class _OverviewPanel extends StatelessWidget {
                     );
                   },
                 ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    PremiumCountText(
-                      value: '$completionPercent%',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w800,
-                      ),
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: AppColors.card.withValues(alpha: 0.92),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
                     ),
-                    Text(
-                      'complete',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.textSecondary,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      PremiumCountText(
+                        value: '$completionPercent%',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        'complete',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

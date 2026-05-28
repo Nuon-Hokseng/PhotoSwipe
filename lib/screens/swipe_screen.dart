@@ -293,7 +293,7 @@ class _SwipeHeader extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   'Clean up the next photo',
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
               ],
             ),

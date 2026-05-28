@@ -1,13 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 
+import 'features/ai/ai_module.dart';
+import 'features/ai/providers/ai_provider.dart';
+import 'features/analytics/analytics_module.dart';
+import 'features/analytics/providers/analytics_provider.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/swipe_screen.dart';
+import 'services/supabase/supabase_client.dart';
 import 'utils/app_colors.dart';
 import 'utils/app_theme.dart';
 
-void main() {
-  runApp(const PhotoSwipeApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: '.env');
+
+  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+
+  if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+    await SupabaseClientWrapper.initialize(
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
+    );
+  }
+
+  // Request photo library access on Android 13+ (READ_MEDIA_IMAGES)
+  // and storage access on older Android. Silently continues if denied.
+  await Permission.photos.request();
+  await Permission.storage.request();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AnalyticsProvider>(
+            create: (_) => AnalyticsModule.provider),
+        ChangeNotifierProvider<AiProvider>(
+            create: (_) => AiModule.provider),
+      ],
+      child: const PhotoSwipeApp(),
+    ),
+  );
 }
 
 class PhotoSwipeApp extends StatelessWidget {
@@ -36,10 +73,7 @@ class _AppShellState extends State<AppShell> {
   int _previousIndex = 0;
 
   void _selectScreen(int index) {
-    if (index == _currentIndex) {
-      return;
-    }
-
+    if (index == _currentIndex) return;
     setState(() {
       _previousIndex = _currentIndex;
       _currentIndex = index;
@@ -66,7 +100,6 @@ class _AppShellState extends State<AppShell> {
             begin: Offset(moveForward ? 0.08 : -0.08, 0.03),
             end: Offset.zero,
           );
-
           return FadeTransition(
             opacity: animation,
             child: SlideTransition(
