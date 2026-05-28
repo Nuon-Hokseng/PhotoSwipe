@@ -3,9 +3,14 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 
 import '../animations/premium_animations.dart';
+import '../constants/strings.dart';
 import '../controllers/analytics_controller.dart';
+import '../controllers/swipe_session_controller.dart';
+import '../features/ai/ai_types.dart';
+import '../features/ai/providers/ai_provider.dart';
 import '../models/cleanup_session.dart';
 import '../utils/app_colors.dart';
 import '../utils/storage_formatters.dart';
@@ -23,111 +28,131 @@ class DashboardScreen extends StatelessWidget {
       builder: (context, _) {
         final analytics = AnalyticsController.instance;
         final session = analytics.session;
+        final ai = context.watch<AiProvider>();
 
-        return SafeArea(
-          child: DecoratedBox(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment.topRight,
-                radius: 1.35,
-                colors: [Color(0x3322D3EE), AppColors.background],
-                stops: [0, 0.78],
-              ),
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _HeaderSection(session: session)
-                      .animate()
-                      .fadeIn(duration: 360.ms)
-                      .slideY(begin: 0.08, end: 0),
-                  const SizedBox(height: 18),
-                  if (session.reviewedCount == 0)
-                    _EmptyDashboardState(onStartCleanup: onStartCleanup)
-                  else ...[
-                    _OverviewPanel(session: session)
+        return Stack(
+          children: [
+            const _DashboardBackground(),
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _HeaderSection(session: session)
                         .animate()
-                        .fadeIn(delay: 70.ms, duration: 360.ms)
+                        .fadeIn(duration: 360.ms)
                         .slideY(begin: 0.08, end: 0),
                     const SizedBox(height: 18),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isWide = constraints.maxWidth >= 520;
-                        final textScale = MediaQuery.textScaleFactorOf(
-                          context,
-                        ).clamp(1.0, 1.3);
-                        final baseRatio = isWide ? 1.22 : 2.0;
-                        final cardRatio = (baseRatio / textScale).clamp(
-                          1.0,
-                          2.2,
-                        );
+                    if (session.reviewedCount == 0)
+                      _EmptyDashboardState(onStartCleanup: onStartCleanup)
+                    else ...[
+                      _OverviewPanel(session: session)
+                          .animate()
+                          .fadeIn(delay: 70.ms, duration: 360.ms)
+                          .slideY(begin: 0.08, end: 0),
+                      const SizedBox(height: 18),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth >= 520;
+                          final textScale = MediaQuery.textScaleFactorOf(
+                            context,
+                          ).clamp(1.0, 1.3);
+                          final baseRatio = isWide ? 1.22 : 2.0;
+                          final cardRatio = (baseRatio / textScale).clamp(
+                            1.0,
+                            2.2,
+                          );
 
-                        return GridView.count(
-                          crossAxisCount: isWide ? 2 : 1,
-                          mainAxisSpacing: 14,
-                          crossAxisSpacing: 14,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          childAspectRatio: cardRatio,
-                          children: [
-                            StatCard(
-                              title: 'Photos Reviewed',
-                              value: '${session.reviewedCount}',
-                              icon: Icons.fact_check_rounded,
-                              accentColor: AppColors.accent,
-                              subtitle: 'Immediate local updates',
-                            ),
-                            StatCard(
-                              title: 'Deleted Photos',
-                              value: '${session.deletedCount}',
-                              icon: Icons.delete_forever_rounded,
-                              accentColor: AppColors.danger,
-                              subtitle: 'Marked for removal',
-                            ),
-                            StatCard(
-                              title: 'Kept Photos',
-                              value: '${session.keptCount}',
-                              icon: Icons.favorite_rounded,
-                              accentColor: AppColors.success,
-                              subtitle: 'Retained locally',
-                            ),
-                            StatCard(
-                              title: 'Storage Saved',
-                              value: formatStorageBytes(
-                                analytics.calculateStorageSaved(),
+                          return GridView.count(
+                            crossAxisCount: isWide ? 2 : 1,
+                            mainAxisSpacing: 14,
+                            crossAxisSpacing: 14,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            childAspectRatio: cardRatio,
+                            children: [
+                              StatCard(
+                                title: 'Photos Reviewed',
+                                value: '${session.reviewedCount}',
+                                icon: Icons.fact_check_rounded,
+                                accentColor: AppColors.accent,
+                                subtitle: 'Immediate local updates',
                               ),
-                              icon: Icons.savings_rounded,
-                              accentColor: AppColors.primary,
-                              subtitle: 'Estimated local cleanup',
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 18),
-                    _SummarySection(session: session)
-                        .animate()
-                        .fadeIn(delay: 140.ms, duration: 360.ms)
-                        .slideY(begin: 0.08, end: 0),
-                    const SizedBox(height: 18),
-                    _ChartSection(weeklyActivity: analytics.weeklyActivity)
-                        .animate()
-                        .fadeIn(delay: 200.ms, duration: 360.ms)
-                        .slideY(begin: 0.08, end: 0),
-                    const SizedBox(height: 18),
-                    _RecentActivitySection(history: analytics.history)
-                        .animate()
-                        .fadeIn(delay: 260.ms, duration: 360.ms)
-                        .slideY(begin: 0.08, end: 0),
+                              StatCard(
+                                title: 'Deleted Photos',
+                                value: '${session.deletedCount}',
+                                icon: Icons.delete_forever_rounded,
+                                accentColor: AppColors.danger,
+                                subtitle: 'Marked for removal',
+                              ),
+                              StatCard(
+                                title: 'Kept Photos',
+                                value: '${session.keptCount}',
+                                icon: Icons.favorite_rounded,
+                                accentColor: AppColors.success,
+                                subtitle: 'Retained locally',
+                              ),
+                              StatCard(
+                                title: 'Storage Saved',
+                                value: formatStorageBytes(
+                                  analytics.calculateStorageSaved(),
+                                ),
+                                icon: Icons.savings_rounded,
+                                accentColor: AppColors.primary,
+                                subtitle: 'Estimated local cleanup',
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 18),
+                      _SummarySection(session: session)
+                          .animate()
+                          .fadeIn(delay: 140.ms, duration: 360.ms)
+                          .slideY(begin: 0.08, end: 0),
+                      const SizedBox(height: 18),
+                        _AiRecommendationsSection(ai: ai)
+                          .animate()
+                          .fadeIn(delay: 180.ms, duration: 360.ms)
+                          .slideY(begin: 0.08, end: 0),
+                        const SizedBox(height: 18),
+                      _ChartSection(weeklyActivity: analytics.weeklyActivity)
+                          .animate()
+                          .fadeIn(delay: 200.ms, duration: 360.ms)
+                          .slideY(begin: 0.08, end: 0),
+                      const SizedBox(height: 18),
+                      _RecentActivitySection(history: analytics.history)
+                          .animate()
+                          .fadeIn(delay: 260.ms, duration: 360.ms)
+                          .slideY(begin: 0.08, end: 0),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         );
       },
+    );
+  }
+}
+
+class _DashboardBackground extends StatelessWidget {
+  const _DashboardBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.topRight,
+          radius: 1.35,
+          colors: [Color(0x3322D3EE), AppColors.background],
+          stops: [0, 0.78],
+        ),
+      ),
+      child: SizedBox.expand(),
     );
   }
 }
@@ -183,39 +208,6 @@ class _HeaderSection extends StatelessWidget {
                           ? 'Session summary will update as soon as you start swiping.'
                           : 'Live analytics refresh immediately after every swipe and undo.',
                       style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Session ${session.sessionId.split('-').last}',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: AppColors.accent,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${session.reviewedCount}/${session.totalPhotos} reviewed',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
                     ),
                   ],
                 ),
@@ -556,7 +548,7 @@ class _ChartSection extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Mock cleanup activity from Monday to Sunday.',
+            'Cleanup activity from Monday to Sunday.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 18),
@@ -685,7 +677,7 @@ class _RecentActivitySection extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Latest mock actions from the local cleanup session.',
+            'Latest actions from the local cleanup session.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 14),
@@ -701,6 +693,207 @@ class _RecentActivitySection extends StatelessWidget {
                 return _ActivityCard(entry: visibleHistory[index]);
               },
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiRecommendationsSection extends StatelessWidget {
+  const _AiRecommendationsSection({required this.ai});
+
+  final AiProvider ai;
+
+  @override
+  Widget build(BuildContext context) {
+    final photos = SwipeSessionController.instance.aiPhotos;
+    final canScan = !ai.isScanning && photos.isNotEmpty;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.card.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppStrings.aiSectionTitle,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    AppStrings.aiSectionSubtitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              FilledButton.icon(
+                onPressed: canScan
+                    ? () => ai.runFullScan(photos)
+                    : () {
+                        if (photos.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(AppStrings.aiNoLocalPhotos),
+                            ),
+                          );
+                        }
+                      },
+                icon: ai.isScanning
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.auto_awesome_rounded, size: 18),
+                label: Text(AppStrings.aiScanButton),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (ai.isScanning) ...[
+            LinearProgressIndicator(value: ai.scanProgress),
+            const SizedBox(height: 8),
+            Text(
+              AppStrings.aiScanningLabel,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ] else if (ai.recommendations.isEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppStrings.aiNoRecommendationsTitle,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  AppStrings.aiNoRecommendationsSubtitle,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            )
+          else ...[
+            Text(
+              '${AppStrings.aiRecommendationCountPrefix}: '
+              '${ai.recommendations.take(3).length}',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 12),
+            for (final recommendation in ai.recommendations.take(3))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _AiRecommendationCard(recommendation: recommendation),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AiRecommendationCard extends StatelessWidget {
+  const _AiRecommendationCard({required this.recommendation});
+
+  final Recommendation recommendation;
+
+  @override
+  Widget build(BuildContext context) {
+    final confidencePercent = (recommendation.confidence * 100).round();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            recommendation.reason,
+            style: Theme.of(context)
+                .textTheme
+                .titleSmall
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            children: [
+              _AiRecommendationPill(
+                label: AppStrings.aiTypeLabel,
+                value: recommendation.type.name,
+              ),
+              _AiRecommendationPill(
+                label: AppStrings.aiConfidenceLabel,
+                value: '$confidencePercent%',
+              ),
+              _AiRecommendationPill(
+                label: AppStrings.aiReasonLabel,
+                value: recommendation.action.name,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiRecommendationPill extends StatelessWidget {
+  const _AiRecommendationPill({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label: ',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
         ],
       ),
     );

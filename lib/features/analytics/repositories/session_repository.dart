@@ -1,17 +1,12 @@
-import 'package:background_remover/features/analytics/analytics_constants.dart';
 import 'package:background_remover/features/analytics/analytics_types.dart';
 import 'package:background_remover/services/logger/app_logger.dart';
-import 'package:background_remover/services/supabase/supabase_client.dart';
 import 'package:background_remover/shared/types/app_error.dart';
 import 'package:background_remover/shared/types/result.dart';
-
-const _kColumns =
-    'id,started_at,ended_at,reviewed,deleted,kept,storage_saved';
 
 class SessionRepository {
   static const _tag = 'SessionRepository';
 
-  /// Upserts a session row; validates id and startedAt before insert.
+  /// Local-only save (no remote persistence).
   Future<Result<void, AppError>> save(Session session) async {
     if (session.id.isEmpty) {
       AppLogger.error(_tag, 'saveSession: id is empty');
@@ -21,85 +16,27 @@ class SessionRepository {
       AppLogger.error(_tag, 'saveSession: startedAt must be > 0');
       return Result.failure(AppError.insertFailed);
     }
-    try {
-      await SupabaseClientWrapper.instance.client
-          .from('sessions')
-          .upsert(session.toJson());
-      return Result.success(null);
-    } catch (e, s) {
-      AppLogger.logError(_tag, e, s);
-      return Result.failure(AppError.insertFailed);
-    }
+    return Result.success(null);
   }
 
-  /// Updates an existing session row matched by id.
+  /// Local-only update (no remote persistence).
   Future<Result<void, AppError>> update(Session session) async {
-    try {
-      await SupabaseClientWrapper.instance.client
-          .from('sessions')
-          .update(session.toJson())
-          .eq('id', session.id);
-      return Result.success(null);
-    } catch (e, s) {
-      AppLogger.logError(_tag, e, s);
-      return Result.failure(AppError.insertFailed);
-    }
+    return Result.success(null);
   }
 
-  /// Returns all sessions ordered by started_at descending, capped at kMaxSessionHistory.
+  /// Local-only getAll (returns empty — no persistence).
   Future<Result<List<Session>, AppError>> getAll() async {
-    try {
-      final data = await SupabaseClientWrapper.instance.client
-          .from('sessions')
-          .select(_kColumns)
-          .order('started_at', ascending: false)
-          .limit(kMaxSessionHistory);
-      return Result.success(
-        data
-            .map((e) => Session.fromJson(Map<String, Object?>.from(e)))
-            .toList(),
-      );
-    } catch (e, s) {
-      AppLogger.logError(_tag, e, s);
-      return Result.failure(AppError.queryFailed);
-    }
+    return Result.success([]);
   }
 
-  /// Returns a single session by id, or sessionNotFound if absent.
+  /// Returns a single session by id (local-only, always not found).
   Future<Result<Session, AppError>> getById(String id) async {
-    try {
-      final data = await SupabaseClientWrapper.instance.client
-          .from('sessions')
-          .select(_kColumns)
-          .eq('id', id)
-          .limit(1);
-      if (data.isEmpty) return Result.failure(AppError.sessionNotFound);
-      return Result.success(
-        Session.fromJson(Map<String, Object?>.from(data.first)),
-      );
-    } catch (e, s) {
-      AppLogger.logError(_tag, e, s);
-      return Result.failure(AppError.queryFailed);
-    }
+    return Result.failure(AppError.sessionNotFound);
   }
 
-  /// Returns sessions with started_at >= [fromTimestamp] for incremental refresh.
+  /// Returns sessions since timestamp (local-only, always empty).
   Future<Result<List<Session>, AppError>> getSessionsSince(
       int fromTimestamp) async {
-    try {
-      final data = await SupabaseClientWrapper.instance.client
-          .from('sessions')
-          .select(_kColumns)
-          .gte('started_at', fromTimestamp)
-          .order('started_at', ascending: false);
-      return Result.success(
-        data
-            .map((e) => Session.fromJson(Map<String, Object?>.from(e)))
-            .toList(),
-      );
-    } catch (e, s) {
-      AppLogger.logError(_tag, e, s);
-      return Result.failure(AppError.queryFailed);
-    }
+    return Result.success([]);
   }
 }

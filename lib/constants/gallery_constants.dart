@@ -1,0 +1,9 @@
+const int kGalleryPageSize = 60;
+const int kGalleryMaxAssets = 20000;
+const int kGalleryThumbnailSize = 720;
+const double kEstimatedCleanupRatio = 0.18;
+const int kThumbnailCacheSize = 500;
+const int kQueueShuffleSeed = 0;
+const int kSessionPersistenceVersion = 1;
+const String kSessionPersistenceKey = 'photoswipe_session';
+const int kDeleteBatchSize = 50;

@@ -1,3 +1,4 @@
+import 'package:background_remover/controllers/swipe_session_controller.dart';
 import 'package:background_remover/features/ai/providers/ai_provider.dart';
 import 'package:background_remover/features/analytics/analytics_types.dart';
 import 'package:background_remover/features/analytics/providers/analytics_provider.dart';
@@ -27,12 +28,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => context.read<AnalyticsProvider>().loadStats());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AnalyticsProvider>().loadStats();
+    });
   }
 
-  Future<void> _onRefresh() async {
-    await context.read<AnalyticsProvider>().loadStats();
+  /// Builds the PhotoItem list from device photos for AI scanning.
+  List<PhotoItem> _getAiPhotos() {
+    return SwipeSessionController.instance.allPhotos
+        .map((p) => PhotoItem(id: p.id, uri: p.uri, size: p.fileSizeBytes, createdAt: p.createdAtMillis))
+        .toList();
   }
 
   @override
@@ -42,12 +47,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final stats = analytics.stats;
 
     return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: _onRefresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(kSpacingM),
-          child: Column(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(context, ai),
@@ -86,8 +88,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildHeader(BuildContext context, AiProvider ai) => Row(
@@ -97,7 +98,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           FilledButton.icon(
             onPressed: ai.isScanning
                 ? null
-                : () => ai.runFullScan(const <PhotoItem>[]),
+                : () => ai.runFullScan(_getAiPhotos()),
             icon: ai.isScanning
                 ? const SizedBox(
                     width: 16, height: 16,

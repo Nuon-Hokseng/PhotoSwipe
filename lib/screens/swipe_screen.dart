@@ -10,6 +10,8 @@ import '../utils/app_colors.dart';
 import '../utils/storage_formatters.dart';
 import '../widgets/action_button.dart';
 import '../widgets/photo_card.dart';
+import '../widgets/premium_ui.dart';
+import '../utils/errors.dart';
 
 class SwipeScreen extends StatefulWidget {
   const SwipeScreen({super.key});
@@ -85,6 +87,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
     _session.restart();
   }
 
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -100,6 +103,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
         final storageSaved = formatStorageBytes(
           _session.estimatedStorageSavedBytes,
         );
+        final loadError = _session.loadError;
 
         return Stack(
           children: [
@@ -129,7 +133,17 @@ class _SwipeScreenState extends State<SwipeScreen> {
                               duration: const Duration(milliseconds: 260),
                               switchInCurve: Curves.easeOutCubic,
                               switchOutCurve: Curves.easeInCubic,
-                              child: queue.isEmpty
+                              child: _session.isLoading
+                                  ? const _LoadingState(
+                                      key: ValueKey('loading-state'),
+                                    )
+                                  : loadError != null && queue.isEmpty
+                                  ? _GalleryErrorState(
+                                      key: const ValueKey('error-state'),
+                                      error: loadError,
+                                      onRetry: _session.loadFromDevice,
+                                    )
+                                  : queue.isEmpty
                                   ? _CompletedState(
                                       key: const ValueKey('completed-state'),
                                       reviewedCount: reviewedCount,
@@ -188,6 +202,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                                 queue[index];
 
                                             return PhotoCard(
+                                              imageBytes: photo.imageBytes,
                                               imageUrl: photo.imageUrl,
                                               filename: photo.filename,
                                               fileSize: photo.fileSize,
@@ -426,6 +441,55 @@ class _SwipeBackground extends StatelessWidget {
   }
 }
 
+class _LoadingState extends StatelessWidget {
+  const _LoadingState({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(36),
+        color: AppColors.card.withValues(alpha: 0.94),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          PremiumShimmer(height: 18, width: 160),
+          SizedBox(height: 12),
+          PremiumShimmer(height: 14, width: 200),
+          SizedBox(height: 20),
+          PremiumShimmer(height: 12, width: 120),
+        ],
+      ),
+    );
+  }
+}
+
+class _GalleryErrorState extends StatelessWidget {
+  const _GalleryErrorState({
+    super.key,
+    required this.error,
+    required this.onRetry,
+  });
+
+  final AppError error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = switch (error.type) {
+      AppErrorType.permissionDenied =>
+        'Photo access is needed to load your gallery.',
+      AppErrorType.galleryEmpty => 'No photos were found in this device.',
+      _ => 'We could not load your photo library right now.',
+    };
+
+    return PremiumErrorState(message: message, onRetry: onRetry);
+  }
+}
+
 class _CompletedState extends StatelessWidget {
   const _CompletedState({
     super.key,
@@ -508,7 +572,7 @@ class _CompletedState extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Every mock photo in this queue has been reviewed. Restart to run the session again or undo to step back.',
+            'Every photo in this queue has been reviewed. Restart to run the session again or undo to step back.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
