@@ -1,5 +1,3 @@
-enum PermissionStatus { granted, denied, notAsked, limited }
-
 enum AppErrorType {
   permissionDenied,
   imageLoadFailed,
